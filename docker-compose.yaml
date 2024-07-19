@@ -1,0 +1,85 @@
+version: '3.1'
+
+services:
+  zookeeper:
+    image: zookeeper:3.8
+    hostname: zookeeper
+    restart: unless-stopped
+    ports:
+      - '22181:2181'
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_CFG_EXTRA: "admin.serverPort=8066"
+      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+  kafka:
+    image: confluentinc/cp-kafka:7.3.2
+    hostname: kafka
+    restart: unless-stopped
+    ports:
+      - '29092:29092'
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://:9092,PLAINTEXT_HOST://host.docker.internal:29092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181/kafka
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_NUN_PARTITIONS=2
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    restart: unless-stopped
+    ports:
+    - '29080:8080'
+    environment:
+    - KAFKA_CLUSTERS_0_NAME=local
+    - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    - KAFKA_CLUSTERS_0_PROPERTIES_ISOLATION_LEVEL=read_committed
+    depends_on:
+      - kafka
+  pinot-controller:
+    image: apachepinot/pinot:1.0.0
+    hostname: pinot-controller
+    restart: unless-stopped
+    ports:
+      - "29000:9000"
+    command: StartController -zkAddress zookeeper:2181 -controllerHost pinot-controller -configFile /etc/controller.properties
+    environment:
+      JAVA_OPTS: "-javaagent:/opt/pinot/etc/jmx_prometheus_javaagent/jmx_prometheus_javaagent.jar=8008:/opt/pinot/etc/jmx_prometheus_javaagent/configs/pinot.yml -Xms256M -Xmx1G"
+    volumes:
+      - ./pinot/controller.properties:/etc/controller.properties
+    depends_on:
+      - zookeeper
+      - kafka
+  pinot-broker:
+    image: apachepinot/pinot:1.0.0
+    hostname: pinot-broker
+    restart: unless-stopped
+    ports:
+      - "28099:8099"
+    command: StartBroker -zkAddress zookeeper:2181 -brokerHost pinot-broker
+    environment:
+      JAVA_OPTS: "-javaagent:/opt/pinot/etc/jmx_prometheus_javaagent/jmx_prometheus_javaagent.jar=8008:/opt/pinot/etc/jmx_prometheus_javaagent/configs/pinot.yml -Xms256M -Xmx1G"
+    depends_on:
+      - zookeeper
+      - pinot-controller
+      - pinot-server
+  pinot-server:
+    image: apachepinot/pinot:1.0.0
+    hostname: pinot-server
+    restart: unless-stopped
+    ports:
+      - "28098:8098"
+      - "28097:8097"
+    command: StartServer -zkAddress zookeeper:2181 -serverHost pinot-server
+    environment:
+      JAVA_OPTS: "-javaagent:/opt/pinot/etc/jmx_prometheus_javaagent/jmx_prometheus_javaagent.jar=8008:/opt/pinot/etc/jmx_prometheus_javaagent/configs/pinot.yml -Xms256M -Xmx1G"
+    depends_on:
+      - zookeeper
+      - pinot-controller
+
+networks:
+  default:
+    name: "pinot-playground"
+    external: true
