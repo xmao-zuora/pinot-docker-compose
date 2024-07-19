@@ -214,6 +214,8 @@ Now we can create an upsert table with the table definition:
 }
 ```
 
+You can open [Pinot Controller API](http://localhost:29000/help) and use `POST /tables` to create a table (no auth required).
+
 `upsertConfig` describes the behavior of upsert, you can check [Stream ingestion with Upsert](https://docs.pinot.apache.org/basics/data-import/upsert) for more details about upsert config.
 
 ### Ingest Usage
