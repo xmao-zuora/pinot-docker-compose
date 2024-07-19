@@ -109,7 +109,7 @@ Here is the schema definition:
 }
 ```
 
-The `primaryKeyColumns` is required for upsert table.
+The `primaryKeyColumns` is required for upsert table. You can check [Schema](https://docs.pinot.apache.org/configuration-reference/schema) for more details.
 
 You can open [Pinot Controller API](http://localhost:29000/help) and use `POST /schemas` to create a schema (no auth required).
 
@@ -214,7 +214,7 @@ Now we can create an upsert table with the table definition:
 }
 ```
 
-Check [Stream ingestion with Upsert](https://docs.pinot.apache.org/basics/data-import/upsert) for more details about upsert config.
+`upsertConfig` describes the behavior of upsert, you can check [Stream ingestion with Upsert](https://docs.pinot.apache.org/basics/data-import/upsert) for more details about upsert config.
 
 ### Ingest Usage
 Let's send the following message with `eventId` as partition key to Kafka:
@@ -261,3 +261,30 @@ Let's send the following message with `eventId` as partition key to Kafka:
 You can run `select * from togai_event_store limit 10` in Pinot's Query Console to check if the message is ingested.
 
 Then change `ingestionStatus` to 1 to simulate the update case, and re-send the message to Kafka again. The `ingestionStatus` saved in Pinot should also be changed.
+
+### Move Realtime Segments to Offline
+We can periodically move realtime segments to offline, especially for the data that will be less frequently accessed.
+
+You can simply add a `task` property to table config, this will be auto scheduled by Pinot:
+```json
+{
+  "tableName": "togai_event_store",
+  "tableType": "REALTIME",
+  ...
+  "task": {
+    "taskTypeConfigsMap": {
+      "RealtimeToOfflineSegmentsTask": {
+        "bucketTimePeriod": "6h",
+        "bufferTimePeriod": "5d",
+        "roundBucketTimePeriod": "1h",
+        "mergeType": "concat",
+        "maxNumRecordsPerSegment": "100000"
+      }
+    }
+  }
+}
+```
+
+The above task moves 6h (`bucketTimePeriod`) data from realtime segments to offline, but tolerates 5d (`bufferTimePeriod`) delay.
+
+You can check [Pinot managed Offline flows](https://docs.pinot.apache.org/operators/operating-pinot/pinot-managed-offline-flows) for more details.
