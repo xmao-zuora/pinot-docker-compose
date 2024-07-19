@@ -111,7 +111,7 @@ Here is the schema definition:
 
 The `primaryKeyColumns` is required for upsert table.
 
-You can open [Pinot Controller API](http://localhost:29000/help) and use `POST /schemas` to create a schema.
+You can open [Pinot Controller API](http://localhost:29000/help) and use `POST /schemas` to create a schema (no auth required).
 
 ### Create Pinot Table
 Now we can create an upsert table with the table definition:
@@ -213,6 +213,8 @@ Now we can create an upsert table with the table definition:
   "isDimTable": false
 }
 ```
+
+Check [Stream ingestion with Upsert](https://docs.pinot.apache.org/basics/data-import/upsert) for more details about upsert config.
 
 ### Ingest Usage
 Let's send the following message with `eventId` as partition key to Kafka:
