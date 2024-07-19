@@ -78,8 +78,3 @@ services:
     depends_on:
       - zookeeper
       - pinot-controller
-
-networks:
-  default:
-    name: "pinot-playground"
-    external: true
