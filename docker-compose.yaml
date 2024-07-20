@@ -78,3 +78,13 @@ services:
     depends_on:
       - zookeeper
       - pinot-controller
+  pinot-minion:
+    image: apachepinot/pinot:1.0.0
+    hostname: pinot-minion
+    restart: unless-stopped
+    command: StartMinion -zkAddress zookeeper:2181
+    environment:
+      JAVA_OPTS: "-javaagent:/opt/pinot/etc/jmx_prometheus_javaagent/jmx_prometheus_javaagent.jar=8008:/opt/pinot/etc/jmx_prometheus_javaagent/configs/pinot.yml -Xms256M -Xmx1G"
+    depends_on:
+      - zookeeper
+      - pinot-controller
